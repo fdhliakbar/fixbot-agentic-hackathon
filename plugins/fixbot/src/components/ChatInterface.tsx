@@ -16,6 +16,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
 import FolderOpenIcon from '@material-ui/icons/FolderOpen';
 import MicIcon from '@material-ui/icons/Mic';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 
 const useStyles = makeStyles(theme => ({
@@ -128,32 +129,76 @@ const useStyles = makeStyles(theme => ({
         flex: 1,
         color: '#ececf1',
         fontSize: '0.95rem',
-        lineHeight: 1.75,
+        lineHeight: 1.6,
         maxWidth: '100%',
         wordBreak: 'break-word',
         '& p': {
             margin: 0,
-            marginBottom: theme.spacing(1.5),
+            marginBottom: theme.spacing(1),
         },
         '& strong': {
             fontWeight: 600,
+            color: '#ffffff',
         },
         '& ul, & ol': {
             marginLeft: theme.spacing(2.5),
-            marginBottom: theme.spacing(1.5),
+            marginBottom: theme.spacing(1),
+            marginTop: theme.spacing(0.5),
+        },
+        '& li': {
+            marginBottom: theme.spacing(0.5),
+        },
+        '& h1, & h2, & h3': {
+            marginTop: theme.spacing(2),
+            marginBottom: theme.spacing(1),
+        },
+    },
+    codeBlockContainer: {
+        position: 'relative',
+        marginTop: theme.spacing(1.5),
+        marginBottom: theme.spacing(1),
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    codeBlockHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#2d2d2d',
+        padding: theme.spacing(1, 2),
+        borderBottom: '1px solid #3d3d3d',
+    },
+    codeLanguage: {
+        color: '#8e8ea0',
+        fontSize: '0.75rem',
+        fontWeight: 500,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+    },
+    copyButton: {
+        color: '#8e8ea0',
+        padding: 4,
+        '&:hover': {
+            color: '#ececf1',
+            backgroundColor: '#3d3d3d',
         },
     },
     codeBlock: {
-        backgroundColor: '#000000',
-        color: '#d4d4d4',
+        backgroundColor: '#565656',
+        color: '#e5e5e5',
         padding: theme.spacing(2),
-        borderRadius: 6,
+        margin: 0,
         overflow: 'auto',
         fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
         fontSize: '0.85rem',
-        marginTop: theme.spacing(1.5),
-        border: '1px solid #2d2d2d',
-        lineHeight: 1.5,
+        lineHeight: 1.6,
+        '&::-webkit-scrollbar': {
+            height: 8,
+        },
+        '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#3d3d3d',
+            borderRadius: 4,
+        },
     },
     inputContainer: {
         backgroundColor: '#212121',
@@ -290,8 +335,19 @@ export const ChatInterface = () => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
+
+    const copyToClipboard = async (text: string, index: number) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedIndex(index);
+            setTimeout(() => setCopiedIndex(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy code:', err);
+        }
+    };
 
     const clearChat = () => {
         setMessages([
@@ -448,11 +504,29 @@ export const ChatInterface = () => {
                     </Avatar>
                 )}
                 <Box className={classes.messageContent}>
-                    {parts.map((part, i) =>
-                        part.type === 'code' ? (
-                            <pre key={i} className={classes.codeBlock}>
-                                <code>{part.content}</code>
-                            </pre>
+                    {parts.map((part, i) => {
+                        const codeBlockKey = `${index}-${i}`;
+                        const isCopied = copiedIndex === parseInt(codeBlockKey.replace('-', ''), 10);
+
+                        return part.type === 'code' ? (
+                            <Box key={i} className={classes.codeBlockContainer}>
+                                <Box className={classes.codeBlockHeader}>
+                                    <Typography className={classes.codeLanguage}>
+                                        {part.language || 'code'}
+                                    </Typography>
+                                    <IconButton
+                                        size="small"
+                                        className={classes.copyButton}
+                                        onClick={() => copyToClipboard(part.content, parseInt(`${index}${i}`, 10))}
+                                        title={isCopied ? 'Copied!' : 'Copy code'}
+                                    >
+                                        <FileCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                <pre className={classes.codeBlock}>
+                                    <code>{part.content}</code>
+                                </pre>
+                            </Box>
                         ) : (
                             <Typography
                                 key={i}
@@ -464,8 +538,8 @@ export const ChatInterface = () => {
                                     '& > *:last-child': { marginBottom: 0 }
                                 }}
                             />
-                        )
-                    )}
+                        );
+                    })}
                 </Box>
             </Box>
         );
