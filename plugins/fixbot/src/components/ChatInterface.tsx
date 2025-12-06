@@ -16,6 +16,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
 import FolderOpenIcon from '@material-ui/icons/FolderOpen';
 import MicIcon from '@material-ui/icons/Mic';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 
 const useStyles = makeStyles(theme => ({
@@ -128,32 +129,92 @@ const useStyles = makeStyles(theme => ({
         flex: 1,
         color: '#ececf1',
         fontSize: '0.95rem',
-        lineHeight: 1.75,
+        lineHeight: 1.5,
         maxWidth: '100%',
         wordBreak: 'break-word',
         '& p': {
             margin: 0,
-            marginBottom: theme.spacing(1.5),
+            marginBottom: theme.spacing(1),
         },
         '& strong': {
             fontWeight: 600,
+            color: '#ffffff',
         },
         '& ul, & ol': {
             marginLeft: theme.spacing(2.5),
-            marginBottom: theme.spacing(1.5),
+            marginBottom: theme.spacing(1),
+            marginTop: theme.spacing(0.5),
+        },
+        '& li': {
+            marginBottom: theme.spacing(0.5),
+        },
+        '& h1, & h2, & h3': {
+            marginTop: theme.spacing(2),
+            marginBottom: theme.spacing(1),
+        },
+    },
+    codeBlockContainer: {
+        position: 'relative',
+        marginTop: theme.spacing(1.5),
+        marginBottom: theme.spacing(1),
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    codeBlockHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#2d2d2d',
+        padding: theme.spacing(1, 2),
+        borderBottom: '1px solid #3d3d3d',
+    },
+    codeLanguage: {
+        color: '#8e8ea0',
+        fontSize: '0.75rem',
+        fontWeight: 500,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+    },
+    copyButton: {
+        color: '#8e8ea0',
+        padding: 4,
+        '&:hover': {
+            color: '#ececf1',
+            backgroundColor: '#3d3d3d',
         },
     },
     codeBlock: {
-        backgroundColor: '#000000',
-        color: '#d4d4d4',
+        backgroundColor: '#565656',
+        color: '#e5e5e5',
         padding: theme.spacing(2),
-        borderRadius: 6,
+        margin: 0,
         overflow: 'auto',
         fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
         fontSize: '0.85rem',
-        marginTop: theme.spacing(1.5),
-        border: '1px solid #2d2d2d',
         lineHeight: 1.5,
+        maxWidth: '100%',
+        wordWrap: 'break-word',
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'break-word',
+        '& code': {
+            color: '#e5e5e5',
+            '& .keyword': { color: '#c678dd' },
+            '& .string': { color: '#98c379' },
+            '& .comment': { color: '#7f848e', fontStyle: 'italic' },
+            '& .function': { color: '#61afef' },
+            '& .number': { color: '#d19a66' },
+            '& .operator': { color: '#56b6c2' },
+            '& .variable': { color: '#e06c75' },
+            '& .tag': { color: '#e06c75' },
+            '& .attr': { color: '#d19a66' },
+        },
+        '&::-webkit-scrollbar': {
+            height: 8,
+        },
+        '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#3d3d3d',
+            borderRadius: 4,
+        },
     },
     inputContainer: {
         backgroundColor: '#212121',
@@ -290,8 +351,20 @@ export const ChatInterface = () => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
+
+    const copyToClipboard = async (text: string, index: number) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedIndex(index);
+            setTimeout(() => setCopiedIndex(null), 2000);
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to copy code:', err);
+        }
+    };
 
     const clearChat = () => {
         setMessages([
@@ -371,6 +444,27 @@ export const ChatInterface = () => {
         setAttachedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const highlightSyntax = (code: string, language: string) => {
+        // Simple syntax highlighting for common languages
+        const keywords = /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new|this|super|extends|static|public|private|protected|interface|type|enum|namespace|module|package|void|int|string|boolean|null|undefined|true|false|def|print|lambda|with|as|pass|break|continue|yield)\b/g;
+        const strings = /(["'`])(?:(?=(\\?))\2.)*?\1/g;
+        const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm;
+        const functions = /\b([a-zA-Z_$][\w$]*)(?=\s*\()/g;
+        const numbers = /\b(\d+\.?\d*|0x[\da-fA-F]+)\b/g;
+
+        let highlighted = code;
+
+        // Apply highlighting in order (comments first to avoid conflicts)
+        highlighted = highlighted.replace(comments, '<span class="comment">$1</span>');
+        highlighted = highlighted.replace(strings, '<span class="string">$1</span>');
+        highlighted = highlighted.replace(keywords, '<span class="keyword">$1</span>');
+        highlighted = highlighted.replace(functions, '<span class="function">$1</span>');
+        highlighted = highlighted.replace(numbers, '<span class="number">$1</span>');
+
+        return highlighted;
+    };
+
     const parseMarkdown = (text: string) => {
         // Split by code blocks first
         const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -378,6 +472,7 @@ export const ChatInterface = () => {
         let lastIndex = 0;
         let match;
 
+        // eslint-disable-next-line no-cond-assign
         while ((match = codeBlockRegex.exec(text)) !== null) {
             if (match.index > lastIndex) {
                 parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
@@ -448,24 +543,38 @@ export const ChatInterface = () => {
                     </Avatar>
                 )}
                 <Box className={classes.messageContent}>
-                    {parts.map((part, i) =>
-                        part.type === 'code' ? (
-                            <pre key={i} className={classes.codeBlock}>
-                                <code>{part.content}</code>
-                            </pre>
+                    {parts.map((part, i) => {
+                        const codeBlockKey = `${index}-${i}`;
+                        const isCopied = copiedIndex === parseInt(codeBlockKey.replace('-', ''), 10);
+
+                        return part.type === 'code' ? (
+                            <Box key={i} className={classes.codeBlockContainer}>
+                                <Box className={classes.codeBlockHeader}>
+                                    <Typography className={classes.codeLanguage}>
+                                        {'language' in part ? (part.language || 'code') : 'code'}
+                                    </Typography>
+                                    <IconButton
+                                        size="small"
+                                        className={classes.copyButton}
+                                        onClick={() => copyToClipboard(part.content, parseInt(`${index}${i}`, 10))}
+                                        title={isCopied ? 'Copied!' : 'Copy code'}
+                                    >
+                                        <FileCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                <pre className={classes.codeBlock}>
+                                    <code dangerouslySetInnerHTML={{ __html: highlightSyntax(part.content, 'language' in part ? (part.language || 'text') : 'text') }} />
+                                </pre>
+                            </Box>
                         ) : (
                             <Typography
                                 key={i}
                                 variant="body1"
                                 component="div"
                                 dangerouslySetInnerHTML={{ __html: formatText(part.content) }}
-                                style={{
-                                    '& > *:first-child': { marginTop: 0 },
-                                    '& > *:last-child': { marginBottom: 0 }
-                                }}
                             />
-                        )
-                    )}
+                        );
+                    })}
                 </Box>
             </Box>
         );

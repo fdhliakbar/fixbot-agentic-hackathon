@@ -57,6 +57,18 @@ const SidebarLogo = () => {
   );
 };
 
+const FixBotIcon = () => (
+  <img
+    src="/fixbot-logo.png"
+    alt="FixBot"
+    style={{
+      width: 34,
+      height: 34,
+      objectFit: 'contain'
+    }}
+  />
+);
+
 export const Root = ({ children }: PropsWithChildren<{}>) => (
   <SidebarPage>
     <Sidebar>
@@ -75,6 +87,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         />
         <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
         <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
+        <SidebarItem icon={FixBotIcon} to="fixbot" text="FixBot" />
         <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
         {/* End global nav */}
         <SidebarDivider />

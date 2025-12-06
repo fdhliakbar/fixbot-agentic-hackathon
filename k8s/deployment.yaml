@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixbot-backend
+  namespace: fixbot
+  labels:
+    app: fixbot
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fixbot
+  template:
+    metadata:
+      labels:
+        app: fixbot
+    spec:
+      containers:
+        - name: backend
+          image: fdhliakbar/fixbot-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7007
+              name: http
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-db-secret
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-db-secret
+                  key: port
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-db-secret
+                  key: password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-db-secret
+                  key: database
+            - name: CLAUDE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-api-secret
+                  key: claude-api-key
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-github-secret
+                  key: client-id
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-github-secret
+                  key: client-secret
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '250m'
+            limits:
+              memory: '2Gi'
+              cpu: '1000m'
+          livenessProbe:
+            tcpSocket:
+              port: 7007
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: 7007
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3

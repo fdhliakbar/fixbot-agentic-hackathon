@@ -45,6 +45,16 @@ site
 
 # Sensitive credentials
 *-credentials.yaml
+credentials/
+!credentials/README.md
+k8s/secrets.yaml
+k8s/deployment-simple.yaml
+*.tar
+fixbot-backend.tar
+.env
+
+# Docker images
+*.tar.gz
 
 # vscode database functionality support files
 *.session.sql

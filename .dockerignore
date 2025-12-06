@@ -6,3 +6,21 @@ packages/*/src
 packages/*/node_modules
 plugins
 *.local.yaml
+
+# Sensitive credentials
+credentials/
+k8s/secrets.yaml
+*-credentials.txt
+*.tar
+fixbot-backend.tar
+
+# Git
+.github/
+
+# IDE
+.vscode/
+.idea/
+
+# Docs
+*.md
+docs/
