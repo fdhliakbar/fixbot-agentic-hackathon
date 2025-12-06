@@ -1,0 +1,101 @@
+# FixBot Backstage Deployment Script - AUTOMATED
+# This script will build, push, and deploy your Backstage app to Kubernetes
+
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host " FixBot Backstage - Auto Deploy" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+
+$DOCKER_USERNAME = "fdhliakbar"
+$IMAGE_NAME = "fixbot-backstage"
+$IMAGE_TAG = "latest"
+$NAMESPACE = "fixbot"
+$KUBECONFIG_PATH = "credentials/kubeconfig.yaml"
+
+# Step 1: Check Docker
+Write-Host "[1/7] Checking Docker..." -ForegroundColor Yellow
+try {
+    docker ps | Out-Null
+    Write-Host "✓ Docker is running" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Docker not running. Start Docker Desktop first!" -ForegroundColor Red
+    exit 1
+}
+
+# Step 2: Docker Login
+Write-Host ""
+Write-Host "[2/7] Docker Hub Login..." -ForegroundColor Yellow
+docker login
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "✗ Docker login failed" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✓ Logged in" -ForegroundColor Green
+
+# Step 3: Build Image
+Write-Host ""
+Write-Host "[3/7] Building Docker image..." -ForegroundColor Yellow
+Write-Host "⏳ This takes 10-15 minutes. Please wait..." -ForegroundColor Cyan
+docker build -t "${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}" .
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "✗ Build failed" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✓ Image built" -ForegroundColor Green
+
+# Step 4: Push Image
+Write-Host ""
+Write-Host "[4/7] Pushing to Docker Hub..." -ForegroundColor Yellow
+docker push "${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "✗ Push failed" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✓ Image pushed" -ForegroundColor Green
+
+# Step 5: Configure kubectl
+Write-Host ""
+Write-Host "[5/7] Configuring kubectl..." -ForegroundColor Yellow
+$env:KUBECONFIG = $KUBECONFIG_PATH
+Write-Host "✓ Kubeconfig set" -ForegroundColor Green
+
+# Step 6: Deploy to Kubernetes
+Write-Host ""
+Write-Host "[6/7] Deploying to Kubernetes..." -ForegroundColor Yellow
+
+# Step 3: Set Kubeconfig
+Write-Host "`n⚙️  Step 3: Configure Kubernetes" -ForegroundColor Yellow
+Write-Host "Set kubeconfig:" -ForegroundColor Gray
+Write-Host '  $env:KUBECONFIG = ".\credentials\kubeconfig.yaml"' -ForegroundColor White
+Write-Host "Atau gunakan flag:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml -n fixbot get pods" -ForegroundColor White
+
+# Step 4: Deploy to Kubernetes
+Write-Host "`n🎯 Step 4: Deploy to Kubernetes" -ForegroundColor Yellow
+Write-Host "Deploy secrets:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml apply -f k8s\secrets.yaml" -ForegroundColor White
+Write-Host "`nDeploy application:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml apply -f k8s\deployment.yaml" -ForegroundColor White
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml apply -f k8s\service.yaml" -ForegroundColor White
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml apply -f k8s\ingress.yaml" -ForegroundColor White
+
+# Step 5: Check Status
+Write-Host "`n📊 Step 5: Check Deployment Status" -ForegroundColor Yellow
+Write-Host "Check pods:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml -n fixbot get pods" -ForegroundColor White
+Write-Host "`nCheck service:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml -n fixbot get svc" -ForegroundColor White
+Write-Host "`nCheck ingress:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml -n fixbot get ingress" -ForegroundColor White
+Write-Host "`nView logs:" -ForegroundColor Gray
+Write-Host "  kubectl --kubeconfig=.\credentials\kubeconfig.yaml -n fixbot logs -f deployment/fixbot-backend" -ForegroundColor White
+
+# Step 6: Test Domain
+Write-Host "`n🌐 Step 6: Test Domain Access" -ForegroundColor Yellow
+Write-Host "Wait 1-2 minutes for DNS propagation, then test:" -ForegroundColor Gray
+Write-Host "  curl https://fixbot.hackathon.sev-2.com/api/fixbot/health" -ForegroundColor White
+Write-Host "`nExpected response:" -ForegroundColor Gray
+Write-Host '  {"status":"ok","model":"claude-sonnet-4-20250514"}' -ForegroundColor Green
+
+Write-Host "`n✅ Deployment Instructions Ready!" -ForegroundColor Green
+Write-Host "Tunggu Docker build selesai, lalu jalankan command di atas step-by-step." -ForegroundColor Cyan

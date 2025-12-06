@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: fixbot-service
+  name: fixbot-backstage
   namespace: fixbot
   labels:
-    app: fixbot
+    app: fixbot-backstage
 spec:
   type: ClusterIP
   selector:
-    app: fixbot
+    app: fixbot-backstage
   ports:
     - name: http
       port: 80

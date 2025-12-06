@@ -1,30 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fixbot-backend
+  name: fixbot-backstage
   namespace: fixbot
   labels:
-    app: fixbot
+    app: fixbot-backstage
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: fixbot
+      app: fixbot-backstage
   template:
     metadata:
       labels:
-        app: fixbot
+        app: fixbot-backstage
     spec:
       containers:
-        - name: backend
-          image: fdhliakbar/fixbot-backend:latest
+        - name: backstage
+          image: fdhliakbar/fixbot-backstage:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 7007
               name: http
           env:
-            - name: NODE_ENV
-              value: 'production'
+            # Application URLs
+            - name: APP_BASE_URL
+              value: 'https://fixbot.hackathon.sev-2.com'
+            - name: BACKEND_BASE_URL
+              value: 'https://fixbot.hackathon.sev-2.com'
+            
+            # Database
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
@@ -50,7 +55,14 @@ spec:
                 secretKeyRef:
                   name: fixbot-db-secret
                   key: database
-            - name: CLAUDE_API_KEY
+            
+            # API Keys
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fixbot-api-secret
+                  key: claude-api-key
+            - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: fixbot-api-secret
@@ -65,24 +77,37 @@ spec:
                 secretKeyRef:
                   name: fixbot-github-secret
                   key: client-secret
+            - name: BOT_USERNAME
+              value: 'CodeReina'
+            
+            # Node
+            - name: NODE_ENV
+              value: 'production'
+            - name: NODE_OPTIONS
+              value: '--max-old-space-size=1536'
+          
           resources:
             requests:
-              memory: '512Mi'
-              cpu: '250m'
+              memory: '768Mi'
+              cpu: '300m'
             limits:
               memory: '2Gi'
               cpu: '1000m'
+          
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /healthcheck
               port: 7007
-            initialDelaySeconds: 30
+            initialDelaySeconds: 90
             periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /healthcheck
               port: 7007
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

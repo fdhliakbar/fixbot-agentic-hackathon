@@ -25,9 +25,35 @@ backend:
       ssl:
         rejectUnauthorized: false
 
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+
 auth:
+  environment: production
   providers:
-    guest: {}
+    github:
+      production:
+        clientId: ${GITHUB_CLIENT_ID}
+        clientSecret: ${GITHUB_CLIENT_SECRET}
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+
+fixbot:
+  database:
+    client: pg
+    host: ${POSTGRES_HOST}
+    port: ${POSTGRES_PORT}
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    database: ${POSTGRES_DB}
+    ssl:
+      rejectUnauthorized: false
+  anthropicApiKey: ${ANTHROPIC_API_KEY}
+  github:
+    token: ${GITHUB_TOKEN}
+    botUsername: ${BOT_USERNAME}
 
 catalog:
   # Overrides the default list locations from app-config.yaml as these contain example data.

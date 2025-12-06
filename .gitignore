@@ -48,6 +48,7 @@ site
 credentials/
 !credentials/README.md
 k8s/secrets.yaml
+k8s/secrets.yaml.template
 k8s/deployment-simple.yaml
 *.tar
 fixbot-backend.tar

@@ -23,6 +23,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: fixbot-service
+                name: fixbot-backstage
                 port:
                   number: 80
