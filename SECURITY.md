@@ -7,11 +7,13 @@ This project uses **environment variables** and **Kubernetes secrets** for sensi
 ### Local Development
 
 1. Copy `app-config.yaml` to `app-config.local.yaml`:
+
    ```bash
    cp app-config.yaml app-config.local.yaml
    ```
 
 2. Edit `app-config.local.yaml` with your credentials:
+
    ```yaml
    backend:
      database:
@@ -33,6 +35,7 @@ This project uses **environment variables** and **Kubernetes secrets** for sensi
 ### Kubernetes Production
 
 1. Copy secrets template:
+
    ```bash
    cp k8s/secrets.yaml.template k8s/secrets.yaml
    ```
@@ -40,6 +43,7 @@ This project uses **environment variables** and **Kubernetes secrets** for sensi
 2. Edit `k8s/secrets.yaml` with actual values
 
 3. Apply to cluster:
+
    ```bash
    kubectl apply -f k8s/secrets.yaml
    ```
@@ -58,6 +62,7 @@ These files are automatically ignored by Git:
 ## ⚠️ Before Push/PR
 
 Check for leaked secrets:
+
 ```bash
 git diff --cached | Select-String -Pattern "api.*key|password|secret"
 ```
