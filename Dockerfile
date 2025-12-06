@@ -58,7 +58,7 @@ EXPOSE 7007
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:7007/healthcheck || exit 1
+    CMD curl -f http://localhost:7007/healthcheck || exit 1
 
 # Start backend with production config
 CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]

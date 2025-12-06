@@ -28,7 +28,7 @@ spec:
               value: 'https://fixbot.hackathon.sev-2.com'
             - name: BACKEND_BASE_URL
               value: 'https://fixbot.hackathon.sev-2.com'
-            
+
             # Database
             - name: POSTGRES_HOST
               valueFrom:
@@ -55,7 +55,7 @@ spec:
                 secretKeyRef:
                   name: fixbot-db-secret
                   key: database
-            
+
             # API Keys
             - name: ANTHROPIC_API_KEY
               valueFrom:
@@ -79,13 +79,13 @@ spec:
                   key: client-secret
             - name: BOT_USERNAME
               value: 'CodeReina'
-            
+
             # Node
             - name: NODE_ENV
               value: 'production'
             - name: NODE_OPTIONS
               value: '--max-old-space-size=1536'
-          
+
           resources:
             requests:
               memory: '768Mi'
@@ -93,7 +93,7 @@ spec:
             limits:
               memory: '2Gi'
               cpu: '1000m'
-          
+
           livenessProbe:
             httpGet:
               path: /healthcheck
@@ -102,7 +102,7 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
-          
+
           readinessProbe:
             httpGet:
               path: /healthcheck
