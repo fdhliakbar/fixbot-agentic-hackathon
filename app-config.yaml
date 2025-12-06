@@ -28,8 +28,13 @@ backend:
   # This is for local development only, it is not recommended to use this in production
   # The production database configuration is stored in app-config.production.yaml
   database:
-    client: better-sqlite3
-    connection: ':memory:'
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: '${POSTGRES_PASSWORD}'
+      database: postgres
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 integrations:
@@ -64,9 +69,17 @@ techdocs:
 
 auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
+  environment: development
   providers:
     # See https://backstage.io/docs/auth/guest/provider
     guest: {}
+    github:
+      development:
+        clientId: ${GITHUB_CLIENT_ID}
+        clientSecret: ${GITHUB_CLIENT_SECRET}
+        signIn:
+          resolvers:
+            - resolver: usernameMatchingUserEntityName
 
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
@@ -111,3 +124,12 @@ kubernetes:
 permission:
   # setting this to `false` will disable permissions
   enabled: true
+
+# FixBot AI Configuration
+fixbot:
+  claude:
+    apiKey: ${CLAUDE_API_KEY}
+    model: ${CLAUDE_MODEL}
+  # Optional: OpenAPI Spec for code generation (besok)
+  # openapi:
+  #   specUrl: https://api.example.com/openapi.json

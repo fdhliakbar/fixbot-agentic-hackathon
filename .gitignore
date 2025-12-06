@@ -54,3 +54,11 @@ e2e-test-report/
 
 # Cache
 .cache/
+
+# Credentials folder
+credentials/
+
+# File credential individual (Backup Protection)
+domain.txt
+db-credentials.txt
+kubeconfig.yaml
