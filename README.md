@@ -1,3 +1,24 @@
+<div align="center">
+<img src="E:\Github-Database\Hackathon\FixBot_2025\fixbottest\packages\app\public\FixBot-Logo.png" width="40%"/>
+
+# FixBot 2025
+
+<p>
+  <strong>AI-Powered Development Assistant for Seamless Code Fixes & Optimization</strong>
+</p>
+
+<p>
+  <a href="#-features">Features</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-demo">Demo</a> •
+  <a href="#-team">Team</a>
+</p>
+
+</div>
+
+---
+
 <p align="center">
   <a href="https://github.com/Fission-AI/OpenSpec">
     <img src="./openspec_pixel_dark.svg" />
@@ -15,34 +36,160 @@
   <a href="https://discord.gg/YctCnvvshC"><img alt="Discord" src="https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?logo=discord&logoColor=white&style=flat-square" /></a>
 </p>
 
-<p align="center">
-  <img src="assets/openspec_dashboard.png" alt="OpenSpec dashboard preview" width="90%">
-</p>
+---
 
-<p align="center">
-  Follow <a href="https://x.com/0xTab">@0xTab on X</a> for updates · Join the <a href="https://discord.gg/YctCnvvshC">OpenSpec Discord</a> for help and questions.
-</p>
+## About FixBot
 
-# [Backstage](https://backstage.io)
+FixBot is an AI coding assistant designed to accelerate the development process with automatic bug detection, code improvement suggestions, and performance optimization. Built with the latest AI technology, FixBot helps developers solve coding problems faster and more efficiently.
 
-This is your newly scaffolded Backstage App, Good Luck!
+---
 
-To start the app, run:
+## Features
 
-# [FixBot](github.com/fdhliakbar/)
+### Intelligent Code Analysis
 
-## How to Run
+- Real-time bug detection dan error highlighting
+- Context-aware suggestions berdasarkan codebase Anda
+- Multi-language support (JavaScript, TypeScript, Python, Java, dll)
+
+### Auto-Fix Capabilities
+
+- One-click fix untuk common issues
+- Batch fixing untuk multiple files
+- Safe refactoring dengan preview changes
+
+### Code Quality Dashboard
+
+- Metrics dan analytics untuk code health
+- Historical tracking untuk improvements
+- Team collaboration features
+
+### AI-Powered Assistant
+
+- Natural language queries untuk code questions
+- Documentation generation otomatis
+- Code explanation untuk better understanding
+
+---
+
+## Demo
+
+<div align="center">
+  <img src="assets/demo_screenshot.png" alt="FixBot Demo" width="80%">
+  
+  *[Link to demo video]*
+</div>
+
+### Try it yourself:
 
 ```bash
-# minimum node version 20
-node --version
+# Coming soon!
+npx fixbot@latest
+```
 
-yarn --version
+---
 
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm / yarn / pnpm
+- Git
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/YourUsername/FixBot_2025.git
+cd FixBot_2025
+
+# Install dependencies
 npm install
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env dengan API keys Anda
+
+# Run development server
+npm run dev
 ```
 
-```sh
-yarn install
-yarn start
+### Project Structure
+
 ```
+FixBot_2025/
+├── packages/
+│   ├── app/           # Frontend application
+│   ├── api/           # Backend API
+│   └── shared/        # Shared utilities
+├── docs/              # Documentation
+├── scripts/           # Build scripts
+└── tests/             # Test suites
+```
+
+---
+
+## 📖 Documentation
+
+Untuk dokumentasi lengkap, kunjungi [docs folder](./docs) atau [Wiki](https://github.com/YourUsername/FixBot_2025/wiki).
+
+- [Getting Started Guide](./docs/getting-started.md)
+- [API Documentation](./docs/api.md)
+- [Contributing Guidelines](./CONTRIBUTING.md)
+- [Architecture Overview](./docs/architecture.md)
+
+---
+
+## Roadmap
+
+- [x] Core AI integration
+- [x] Basic bug detection
+- [x] Web dashboard
+- [ ] VS Code extension
+- [ ] GitHub integration
+- [ ] Multi-language support expansion
+- [ ] Team collaboration features
+- [ ] Enterprise features
+
+---
+
+## Team
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/fdhliakbar">
+        <img src="https://github.com/fdhliakbar.png" width="100px;" alt=""/>
+        <br />
+        <sub><b>Muhamad Fadhli Akbar</b></sub>
+      </a>
+      <br />
+      <sub>Full Stack Developer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/username2">
+        <img src="https://github.com/username2.png" width="100px;" alt=""/>
+        <br />
+        <sub><b>Nama Developer 2</b></sub>
+      </a>
+      <br />
+      <sub>AI/ML Engineer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/username3">
+        <img src="https://github.com/username3.png" width="100px;" alt=""/>
+        <br />
+        <sub><b>Nama Developer 3</b></sub>
+      </a>
+      <br />
+      <sub>UI/UX Designer</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Contributing
+
+Kami sangat terbuka untuk kontribusi! Silakan baca [CONTRIBUTING.md](./CONTRIBUTING.md) untuk detail proses development dan cara submit pull requests.
