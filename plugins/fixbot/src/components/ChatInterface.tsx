@@ -15,16 +15,23 @@ import PersonIcon from '@material-ui/icons/Person';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
-import { useApi, configApiRef } from '@backstage/core-plugin-api';
+import { useApi, configApiRef, identityApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { ChatHistorySidebar } from './ChatHistorySidebar';
 
 const useStyles = makeStyles(theme => ({
     root: {
         height: '100vh',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         backgroundColor: '#212121',
         maxWidth: '100%',
         margin: '0 auto',
+    },
+    mainContent: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
     },
     header: {
         backgroundColor: '#1a1a1a',
@@ -352,6 +359,8 @@ interface Message {
 export const ChatInterface = () => {
     const classes = useStyles();
     const configApi = useApi(configApiRef);
+    const identityApi = useApi(identityApiRef);
+    const fetchApi = useApi(fetchApiRef);
     const backendUrl = configApi.getString('backend.baseUrl');
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -359,7 +368,18 @@ export const ChatInterface = () => {
     const [loading, setLoading] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
+    const [userId, setUserId] = useState<string>('anonymous');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Get user identity from Backstage
+    useState(() => {
+        identityApi.getBackstageIdentity().then(identity => {
+            setUserId(identity.userEntityRef || 'anonymous');
+        }).catch(() => {
+            setUserId('anonymous');
+        });
+    });
 
     const copyToClipboard = async (text: string, index: number) => {
         try {
@@ -382,6 +402,64 @@ export const ChatInterface = () => {
         ]);
     };
 
+    const handleSessionSelect = async (sessionId: string) => {
+        try {
+            setLoading(true);
+            // Load messages from the selected session
+            const response = await fetchApi.fetch(`${backendUrl}/api/fixbot/sessions/${sessionId}/messages`);
+
+            if (!response.ok) {
+                throw new Error('Failed to load session messages');
+            }
+
+            const data = await response.json();
+            const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: new Date(msg.timestamp || msg.created_at),
+            }));
+
+            setMessages(loadedMessages);
+            setCurrentSessionId(sessionId);
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to load session:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleNewChat = async () => {
+        try {
+            // Create a new session
+            const response = await fetchApi.fetch(`${backendUrl}/api/fixbot/sessions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: 'New Chat',
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create new session');
+            }
+
+            const data = await response.json();
+            const newSessionId = data.session?.session_id || data.session_id;
+            // eslint-disable-next-line no-console
+            console.log('New session created:', newSessionId);
+            setCurrentSessionId(newSessionId);
+            setMessages([]);
+            setInput('');
+            setAttachedFiles([]);
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to create new session:', error);
+        }
+    };
+
     const readFileContent = async (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -397,6 +475,35 @@ export const ChatInterface = () => {
 
     const sendMessage = async () => {
         if (!input.trim() && attachedFiles.length === 0) return;
+
+        // Auto-create session if not exists
+        let sessionId = currentSessionId;
+        if (!sessionId) {
+            try {
+                const sessionResponse = await fetchApi.fetch(`${backendUrl}/api/fixbot/sessions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: 'New Chat',
+                    }),
+                });
+                if (sessionResponse.ok) {
+                    const sessionData = await sessionResponse.json();
+                    sessionId = sessionData.session?.session_id || sessionData.session_id;
+                    // eslint-disable-next-line no-console
+                    console.log('Auto-created session:', sessionId);
+                    setCurrentSessionId(sessionId);
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to create session, status:', sessionResponse.status);
+                }
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to create session:', error);
+            }
+        }
 
         // Read file contents if any
         let messageContent = input;
@@ -415,7 +522,10 @@ export const ChatInterface = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${backendUrl}/api/fixbot/chat`, {
+            // eslint-disable-next-line no-console
+            console.log('Sending message with sessionId:', sessionId, 'userId:', userId);
+
+            const response = await fetchApi.fetch(`${backendUrl}/api/fixbot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -423,10 +533,9 @@ export const ChatInterface = () => {
                 body: JSON.stringify({
                     message: messageContent,
                     conversationHistory: messages,
+                    sessionId: sessionId, // Use the sessionId (either existing or newly created)
                 }),
-            });
-
-            if (!response.ok) {
+            }); if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -437,6 +546,19 @@ export const ChatInterface = () => {
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, assistantMessage]);
+
+            // Update session title if this is the first message in a new session
+            if (sessionId && messages.length === 0) {
+                // Generate title from first message (first 50 chars)
+                const title = messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '');
+                await fetchApi.fetch(`${backendUrl}/api/fixbot/sessions/${sessionId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title }),
+                });
+            }
         } catch (error) {
             const errorMessage: Message = {
                 role: 'assistant',
@@ -688,167 +810,178 @@ export const ChatInterface = () => {
 
     return (
         <Box className={classes.root}>
-            {/* Clean Header Bar */}
-            <Box className={classes.header}>
-                <Box className={classes.headerContent}>
-                    <img
-                        src="/fixbot-logo.png"
-                        alt="FixBot"
-                        className={classes.logo}
-                    />
-                    <Typography className={classes.headerTitle}>
-                        FixBot
-                    </Typography>
-                </Box>
-                <Box className={classes.headerActions}>
-                    <Chip
-                        label="Claude Sonnet 4"
-                        size="small"
-                        className={classes.modelChip}
-                    />
-                    <Tooltip title="Clear Chat">
-                        <IconButton
-                            onClick={clearChat}
-                            size="small"
-                            className={classes.clearButton}
-                        >
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-            </Box>
+            {/* Sidebar with chat history */}
+            <ChatHistorySidebar
+                userId={userId}
+                currentSessionId={currentSessionId}
+                onSessionSelect={handleSessionSelect}
+                onNewChat={handleNewChat}
+            />
 
-            {/* Chat Messages */}
-            <Box className={classes.chatContainer}>
-                {messages.length === 0 && !loading ? (
-                    <Box className={classes.emptyState}>
+            {/* Main chat content */}
+            <Box className={classes.mainContent}>
+                {/* Clean Header Bar */}
+                <Box className={classes.header}>
+                    <Box className={classes.headerContent}>
                         <img
                             src="/fixbot-logo.png"
                             alt="FixBot"
-                            style={{ width: 80, height: 80, marginBottom: 16 }}
+                            className={classes.logo}
                         />
-                        <Typography className={classes.emptyStateTitle}>
-                            Let me know your problem?
+                        <Typography className={classes.headerTitle}>
+                            FixBot
                         </Typography>
-                        <Box style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 600 }}>
-                            <Typography variant="body2" style={{ color: '#9e9ea7', marginBottom: 8 }}>
-                                💡 Quick Actions:
-                            </Typography>
-                            <Box style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                                <Chip
-                                    label="🤖 Open AI Agent Panel"
-                                    clickable
-                                    onClick={() => {
-                                        window.location.href = '/fixbot-agent';
-                                    }}
-                                    style={{ backgroundColor: '#2d2d2d', color: '#ececf1', fontWeight: 500 }}
-                                />
-                                <Chip
-                                    label="🔍 Analyze Repository Health"
-                                    clickable
-                                    onClick={() => setInput('Analyze my repository health score')}
-                                    style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
-                                />
-                                <Chip
-                                    label="📝 Generate README"
-                                    clickable
-                                    onClick={() => setInput('Help me generate a professional README.md')}
-                                    style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
-                                />
-                                <Chip
-                                    label="🐛 Fix Code Issues"
-                                    clickable
-                                    onClick={() => setInput('I have some code that needs fixing')}
-                                    style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
-                                />
-                            </Box>
-                            <Typography variant="caption" style={{ color: '#6e6e80', marginTop: 12, textAlign: 'center' }}>
-                                Or type your question below to get started
-                            </Typography>
-                        </Box>
                     </Box>
-                ) : (
-                    <List className={classes.messageList}>
-                        {messages.map((message, index) => renderMessage(message, index))}
-                        {loading && (
-                            <Box className={classes.loadingContainer}>
-                                <Avatar className={`${classes.avatar} ${classes.aiAvatar}`}>
-                                    <img src="/fixbot-logo.png" alt="FixBot" style={{ width: 22, height: 22 }} />
-                                </Avatar>
-                                <Typography className={classes.loadingText}>
-                                    FixBot is thinking...
-                                </Typography>
-                            </Box>
-                        )}
-                    </List>
-                )}
-            </Box>
-
-            {/* Input Area */}
-            <Box className={classes.inputContainer}>
-                {/* Attached Files */}
-                {attachedFiles.length > 0 && (
-                    <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                        {attachedFiles.map((file, index) => (
-                            <Box key={index} className={classes.attachedFile}>
-                                <Typography style={{ fontSize: '0.85rem' }}>
-                                    📄 {file.name} ({(file.size / 1024).toFixed(1)} KB)
-                                </Typography>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => removeFile(index)}
-                                    style={{ padding: 2 }}
-                                >
-                                    <DeleteIcon style={{ fontSize: 16 }} />
-                                </IconButton>
-                            </Box>
-                        ))}
-                    </Box>
-                )}
-
-                <Box className={classes.inputWrapper}>
-                    {/* File Upload Button */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className={classes.hiddenInput}
-                        onChange={handleFileUpload}
-                        accept="*/*"
-                    />
-                    <Tooltip title={`Attach File (${attachedFiles.length}/2)`}>
-                        <IconButton
+                    <Box className={classes.headerActions}>
+                        <Chip
+                            label="Claude Sonnet 4"
                             size="small"
-                            className={classes.uploadButton}
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={attachedFiles.length >= 2}
+                            className={classes.modelChip}
+                        />
+                        <Tooltip title="Clear Chat">
+                            <IconButton
+                                onClick={clearChat}
+                                size="small"
+                                className={classes.clearButton}
+                            >
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </Box>
+
+                {/* Chat Messages */}
+                <Box className={classes.chatContainer}>
+                    {messages.length === 0 && !loading ? (
+                        <Box className={classes.emptyState}>
+                            <img
+                                src="/fixbot-logo.png"
+                                alt="FixBot"
+                                style={{ width: 80, height: 80, marginBottom: 16 }}
+                            />
+                            <Typography className={classes.emptyStateTitle}>
+                                Let me know your problem?
+                            </Typography>
+                            <Box style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 600 }}>
+                                <Typography variant="body2" style={{ color: '#9e9ea7', marginBottom: 8 }}>
+                                    💡 Quick Actions:
+                                </Typography>
+                                <Box style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                    <Chip
+                                        label="🤖 Open AI Agent Panel"
+                                        clickable
+                                        onClick={() => {
+                                            window.location.href = '/fixbot-agent';
+                                        }}
+                                        style={{ backgroundColor: '#2d2d2d', color: '#ececf1', fontWeight: 500 }}
+                                    />
+                                    <Chip
+                                        label="🔍 Analyze Repository Health"
+                                        clickable
+                                        onClick={() => setInput('Analyze my repository health score')}
+                                        style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
+                                    />
+                                    <Chip
+                                        label="📝 Generate README"
+                                        clickable
+                                        onClick={() => setInput('Help me generate a professional README.md')}
+                                        style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
+                                    />
+                                    <Chip
+                                        label="🐛 Fix Code Issues"
+                                        clickable
+                                        onClick={() => setInput('I have some code that needs fixing')}
+                                        style={{ backgroundColor: '#2d2d2d', color: '#ececf1' }}
+                                    />
+                                </Box>
+                                <Typography variant="caption" style={{ color: '#6e6e80', marginTop: 12, textAlign: 'center' }}>
+                                    Or type your question below to get started
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ) : (
+                        <List className={classes.messageList}>
+                            {messages.map((message, index) => renderMessage(message, index))}
+                            {loading && (
+                                <Box className={classes.loadingContainer}>
+                                    <Avatar className={`${classes.avatar} ${classes.aiAvatar}`}>
+                                        <img src="/fixbot-logo.png" alt="FixBot" style={{ width: 22, height: 22 }} />
+                                    </Avatar>
+                                    <Typography className={classes.loadingText}>
+                                        FixBot is thinking...
+                                    </Typography>
+                                </Box>
+                            )}
+                        </List>
+                    )}
+                </Box>
+
+                {/* Input Area */}
+                <Box className={classes.inputContainer}>
+                    {/* Attached Files */}
+                    {attachedFiles.length > 0 && (
+                        <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                            {attachedFiles.map((file, index) => (
+                                <Box key={index} className={classes.attachedFile}>
+                                    <Typography style={{ fontSize: '0.85rem' }}>
+                                        📄 {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                                    </Typography>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => removeFile(index)}
+                                        style={{ padding: 2 }}
+                                    >
+                                        <DeleteIcon style={{ fontSize: 16 }} />
+                                    </IconButton>
+                                </Box>
+                            ))}
+                        </Box>
+                    )}
+
+                    <Box className={classes.inputWrapper}>
+                        {/* File Upload Button */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            className={classes.hiddenInput}
+                            onChange={handleFileUpload}
+                            accept="*/*"
+                        />
+                        <Tooltip title={`Attach File (${attachedFiles.length}/2)`}>
+                            <IconButton
+                                size="small"
+                                className={classes.uploadButton}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={attachedFiles.length >= 2}
+                            >
+                                <AttachFileIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+
+                        {/* Text Input */}
+                        <TextField
+                            fullWidth
+                            multiline
+                            maxRows={6}
+                            placeholder="Message FixBot..."
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            disabled={loading}
+                            className={classes.textField}
+                        />
+
+                        {/* Send Button */}
+                        <IconButton
+                            onClick={sendMessage}
+                            disabled={loading || (!input.trim() && attachedFiles.length === 0)}
+                            className={classes.sendButton}
+                            size="small"
                         >
-                            <AttachFileIcon fontSize="small" />
+                            <SendIcon fontSize="small" />
                         </IconButton>
-                    </Tooltip>
-
-                    {/* Text Input */}
-                    <TextField
-                        fullWidth
-                        multiline
-                        maxRows={6}
-                        placeholder="Message FixBot..."
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        disabled={loading}
-                        className={classes.textField}
-                    />
-
-                    {/* Send Button */}
-                    <IconButton
-                        onClick={sendMessage}
-                        disabled={loading || (!input.trim() && attachedFiles.length === 0)}
-                        className={classes.sendButton}
-                        size="small"
-                    >
-                        <SendIcon fontSize="small" />
-                    </IconButton>
+                    </Box>
                 </Box>
             </Box>
         </Box>
