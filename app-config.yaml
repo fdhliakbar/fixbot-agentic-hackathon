@@ -120,6 +120,14 @@ catalog:
 kubernetes:
   # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
 
+# Search configuration - use PostgreSQL search engine
+search:
+  pg:
+    highlightOptions:
+      useHighlight: true
+      maxWord: 35
+      minWord: 15
+
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
   # setting this to `false` will disable permissions
@@ -130,6 +138,12 @@ fixbot:
   claude:
     apiKey: ${CLAUDE_API_KEY}
     model: ${CLAUDE_MODEL}
+  database:
+    host: ${POSTGRES_HOST}
+    port: ${POSTGRES_PORT}
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    database: ${POSTGRES_DB}
   # Optional: OpenAPI Spec for code generation (besok)
   # openapi:
   #   specUrl: https://api.example.com/openapi.json
