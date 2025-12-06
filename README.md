@@ -1,5 +1,5 @@
 <div align="center">
-<img src="E:\Github-Database\Hackathon\FixBot_2025\fixbottest\packages\app\public\FixBot-Logo.png" width="40%"/>
+<img src="./packages/app/public/FixBot-Logo.png" width="40%"/>
 
 # FixBot 2025
 
@@ -168,22 +168,13 @@ Untuk dokumentasi lengkap, kunjungi [docs folder](./docs) atau [Wiki](https://gi
       <sub>Full Stack Developer</sub>
     </td>
     <td align="center">
-      <a href="https://github.com/username2">
-        <img src="https://github.com/username2.png" width="100px;" alt=""/>
+      <a href="https://github.com/andinirifaat">
+        <img src="https://github.com/andinirifaat.png" width="100px;" alt=""/>
         <br />
-        <sub><b>Nama Developer 2</b></sub>
+        <sub><b>Andini Nareswari</b></sub>
       </a>
       <br />
-      <sub>AI/ML Engineer</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/username3">
-        <img src="https://github.com/username3.png" width="100px;" alt=""/>
-        <br />
-        <sub><b>Nama Developer 3</b></sub>
-      </a>
-      <br />
-      <sub>UI/UX Designer</sub>
+      <sub>System Design</sub>
     </td>
   </tr>
 </table>

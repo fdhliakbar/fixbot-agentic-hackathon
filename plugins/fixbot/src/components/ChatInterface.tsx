@@ -96,9 +96,7 @@ const useStyles = makeStyles(theme => ({
         padding: theme.spacing(3, 2),
         gap: theme.spacing(2),
         alignItems: 'flex-start',
-        '&:hover': {
-            backgroundColor: '#40414f',
-        },
+
     },
     '@keyframes fadeIn': {
         from: { opacity: 0, transform: 'translateY(4px)' },
@@ -218,9 +216,7 @@ const useStyles = makeStyles(theme => ({
     },
     clearButton: {
         color: '#ececf1',
-        '&:hover': {
-            backgroundColor: '#40414f',
-        },
+
     },
     loadingContainer: {
         display: 'flex',
@@ -375,18 +371,66 @@ export const ChatInterface = () => {
         setAttachedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    const parseMarkdown = (text: string) => {
+        // Split by code blocks first
+        const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        const parts: Array<{ type: 'text' | 'code'; content: string; language?: string }> = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+            }
+            parts.push({
+                type: 'code',
+                content: match[2],
+                language: match[1] || 'text'
+            });
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            parts.push({ type: 'text', content: text.slice(lastIndex) });
+        }
+
+        return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+    };
+
+    const formatText = (text: string) => {
+        // Process markdown formatting
+        let formatted = text;
+
+        // Headers (## Header)
+        formatted = formatted.replace(/^### (.*$)/gim, '<h3 style="font-size: 1.1rem; font-weight: 600; margin: 12px 0 8px 0; color: #ececf1;">$1</h3>');
+        formatted = formatted.replace(/^## (.*$)/gim, '<h2 style="font-size: 1.3rem; font-weight: 600; margin: 16px 0 10px 0; color: #ececf1;">$1</h2>');
+        formatted = formatted.replace(/^# (.*$)/gim, '<h1 style="font-size: 1.5rem; font-weight: 700; margin: 20px 0 12px 0; color: #ececf1;">$1</h1>');
+
+        // Bold (**text**)
+        formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600; color: #ececf1;">$1</strong>');
+
+        // Italic (*text*)
+        formatted = formatted.replace(/\*(.+?)\*/g, '<em style="font-style: italic;">$1</em>');
+
+        // Inline code (`code`)
+        formatted = formatted.replace(/`([^`]+)`/g, '<code style="background-color: #3d3d3d; padding: 2px 6px; border-radius: 4px; font-family: Consolas, Monaco, monospace; font-size: 0.9em; color: #e06c75;">$1</code>');
+
+        // Lists (- item or * item)
+        formatted = formatted.replace(/^\s*[-*]\s+(.+)$/gim, '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>');
+        formatted = formatted.replace(/(<li.*<\/li>)/s, '<ul style="margin: 8px 0; padding-left: 0;">$1</ul>');
+
+        // Numbered lists (1. item)
+        formatted = formatted.replace(/^\s*\d+\.\s+(.+)$/gim, '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>');
+
+        // Line breaks
+        formatted = formatted.replace(/\n/g, '<br/>');
+
+        return formatted;
+    };
+
     const renderMessage = (message: Message, index: number) => {
         const isUser = message.role === 'user';
-        const hasCodeBlock = message.content.includes('```');
-
-        let textContent = message.content;
-        let codeContent = '';
-
-        if (hasCodeBlock) {
-            const parts = message.content.split('```');
-            textContent = parts[0];
-            codeContent = parts[1] || '';
-        }
+        const parts = parseMarkdown(message.content);
 
         return (
             <Box
@@ -404,18 +448,23 @@ export const ChatInterface = () => {
                     </Avatar>
                 )}
                 <Box className={classes.messageContent}>
-                    <Typography
-                        variant="body1"
-                        style={{
-                            whiteSpace: 'pre-wrap',
-                        }}
-                    >
-                        {textContent}
-                    </Typography>
-                    {hasCodeBlock && codeContent && (
-                        <pre className={classes.codeBlock}>
-                            <code>{codeContent}</code>
-                        </pre>
+                    {parts.map((part, i) =>
+                        part.type === 'code' ? (
+                            <pre key={i} className={classes.codeBlock}>
+                                <code>{part.content}</code>
+                            </pre>
+                        ) : (
+                            <Typography
+                                key={i}
+                                variant="body1"
+                                component="div"
+                                dangerouslySetInnerHTML={{ __html: formatText(part.content) }}
+                                style={{
+                                    '& > *:first-child': { marginTop: 0 },
+                                    '& > *:last-child': { marginBottom: 0 }
+                                }}
+                            />
+                        )
                     )}
                 </Box>
             </Box>
