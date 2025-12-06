@@ -129,7 +129,7 @@ const useStyles = makeStyles(theme => ({
         flex: 1,
         color: '#ececf1',
         fontSize: '0.95rem',
-        lineHeight: 1.6,
+        lineHeight: 1.5,
         maxWidth: '100%',
         wordBreak: 'break-word',
         '& p': {
@@ -191,7 +191,23 @@ const useStyles = makeStyles(theme => ({
         overflow: 'auto',
         fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
         fontSize: '0.85rem',
-        lineHeight: 1.6,
+        lineHeight: 1.5,
+        maxWidth: '100%',
+        wordWrap: 'break-word',
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'break-word',
+        '& code': {
+            color: '#e5e5e5',
+            '& .keyword': { color: '#c678dd' },
+            '& .string': { color: '#98c379' },
+            '& .comment': { color: '#7f848e', fontStyle: 'italic' },
+            '& .function': { color: '#61afef' },
+            '& .number': { color: '#d19a66' },
+            '& .operator': { color: '#56b6c2' },
+            '& .variable': { color: '#e06c75' },
+            '& .tag': { color: '#e06c75' },
+            '& .attr': { color: '#d19a66' },
+        },
         '&::-webkit-scrollbar': {
             height: 8,
         },
@@ -345,6 +361,7 @@ export const ChatInterface = () => {
             setCopiedIndex(index);
             setTimeout(() => setCopiedIndex(null), 2000);
         } catch (err) {
+            // eslint-disable-next-line no-console
             console.error('Failed to copy code:', err);
         }
     };
@@ -427,6 +444,27 @@ export const ChatInterface = () => {
         setAttachedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const highlightSyntax = (code: string, language: string) => {
+        // Simple syntax highlighting for common languages
+        const keywords = /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new|this|super|extends|static|public|private|protected|interface|type|enum|namespace|module|package|void|int|string|boolean|null|undefined|true|false|def|print|lambda|with|as|pass|break|continue|yield)\b/g;
+        const strings = /(["'`])(?:(?=(\\?))\2.)*?\1/g;
+        const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm;
+        const functions = /\b([a-zA-Z_$][\w$]*)(?=\s*\()/g;
+        const numbers = /\b(\d+\.?\d*|0x[\da-fA-F]+)\b/g;
+
+        let highlighted = code;
+
+        // Apply highlighting in order (comments first to avoid conflicts)
+        highlighted = highlighted.replace(comments, '<span class="comment">$1</span>');
+        highlighted = highlighted.replace(strings, '<span class="string">$1</span>');
+        highlighted = highlighted.replace(keywords, '<span class="keyword">$1</span>');
+        highlighted = highlighted.replace(functions, '<span class="function">$1</span>');
+        highlighted = highlighted.replace(numbers, '<span class="number">$1</span>');
+
+        return highlighted;
+    };
+
     const parseMarkdown = (text: string) => {
         // Split by code blocks first
         const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -434,6 +472,7 @@ export const ChatInterface = () => {
         let lastIndex = 0;
         let match;
 
+        // eslint-disable-next-line no-cond-assign
         while ((match = codeBlockRegex.exec(text)) !== null) {
             if (match.index > lastIndex) {
                 parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
@@ -512,7 +551,7 @@ export const ChatInterface = () => {
                             <Box key={i} className={classes.codeBlockContainer}>
                                 <Box className={classes.codeBlockHeader}>
                                     <Typography className={classes.codeLanguage}>
-                                        {part.language || 'code'}
+                                        {'language' in part ? (part.language || 'code') : 'code'}
                                     </Typography>
                                     <IconButton
                                         size="small"
@@ -524,7 +563,7 @@ export const ChatInterface = () => {
                                     </IconButton>
                                 </Box>
                                 <pre className={classes.codeBlock}>
-                                    <code>{part.content}</code>
+                                    <code dangerouslySetInnerHTML={{ __html: highlightSyntax(part.content, 'language' in part ? (part.language || 'text') : 'text') }} />
                                 </pre>
                             </Box>
                         ) : (
@@ -533,10 +572,6 @@ export const ChatInterface = () => {
                                 variant="body1"
                                 component="div"
                                 dangerouslySetInnerHTML={{ __html: formatText(part.content) }}
-                                style={{
-                                    '& > *:first-child': { marginTop: 0 },
-                                    '& > *:last-child': { marginBottom: 0 }
-                                }}
                             />
                         );
                     })}
