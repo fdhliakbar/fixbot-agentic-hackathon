@@ -14,20 +14,6 @@
   <a href="#-demo">Demo</a> •
   <a href="#-team">Team</a>
 </p>
-Link Soal Responsi Tiap Slot : 
-Senin      07.00 : rebrand.ly/CieyyPertama
-Senin      10.00 : rebrand.ly/WaduhK3dua
-Selasa    08.30 : rebrand.ly/P4giAmat
-Rabu       10.00 : rebrand.ly/DptBocoran
-Rabu       16.45 : rebrand.ly/Sor33Bngt
-Kamis     07.00 : rebrand.ly/ManaBocoran
-Jummat 13.45 : rebrand.ly/LasttResss
-
-Link Denah 
-Plot Denah Responsi : rebrand.ly/DenahRespon
-
-Link Teknisi 
-Teknisi Praktikum : bit.ly/4q2HWVW
 </div>
 
 ---
